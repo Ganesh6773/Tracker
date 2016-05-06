@@ -43,7 +43,7 @@ def getLoggingLevel():
 def getLoggerFormatString():
     return _LOGGER_FORMAT_STRING ;
     
-def getMaxWaitBetweenDeviceConnectionChech():
+def getMaxWaitBetweenDeviceConnectionCheck():
     return _MAX_WAIT_BETWEEN_DEV_CONNECTION_CHECK;
    
 def getMaxTimeToChangeStatus():
@@ -68,20 +68,20 @@ def diffBetTime(prevTime):
 def getConnectedDeviceId(type=TYPE_REFERENCE_DEVICE):
     ''' Return Device id if connected else DISCONNECTED '''
     if(type	==	UserConfig.TYPE_REFERENCE_DEVICE ):
+               
+        proc=subprocess.Popen((UserConfig.TYPE_REFERENCE_DEVICE_CHECK_CMD), stdout=subprocess.PIPE)
         
-    proc=subprocess.Popen((UserConfig.TYPE_REFERENCE_DEVICE_CHECK_CMD), stdout=subprocess.PIPE)
-    
-    state	=	proc.stdout.read()
-    dev	=	state.split('\n')[1];
-    
-    if(dev	==	""):
-        logger.log("i", "No Connected Device");
-        return DISCONNECTED
-    else:
-                    
-        logger.log("i", "One device connected " + state);
-        return dev.split(" ")[0];
-    
+        state	=	proc.stdout.read()
+        dev	=	state.split('\n')[1];
+        
+        if(dev	==	""):
+            logger.log("i", "No Connected Device");
+            return DISCONNECTED
+        else:
+                        
+            logger.log("i", "One device connected " + state);
+            return dev.split(" ")[0];
+        
     
     
     
@@ -91,19 +91,19 @@ def getDeviceConnectioState(type=TYPE_REFERENCE_DEVICE):
     
     if(type	==	UserConfig.TYPE_REFERENCE_DEVICE ):
     
-    proc=subprocess.Popen((UserConfig.TYPE_REFERENCE_DEVICE_CHECK_CMD), stdout=subprocess.PIPE)
-    
-    state	=	proc.stdout.read()
-    dev	=	state.split('\n')[1];
-    
-    if(dev	==	""):
-        logger.log("i", "No Connected Device");
-        return DISCONNECTED
-    else:
-                    
-        logger.log("i", "One device connected " + state);
-        return CONNECTED
-       
+        proc=subprocess.Popen((UserConfig.TYPE_REFERENCE_DEVICE_CHECK_CMD), stdout=subprocess.PIPE)
+        
+        state	=	proc.stdout.read()
+        dev	=	state.split('\n')[1];
+        
+        if(dev	==	""):
+            logger.log("i", "No Connected Device");
+            return DISCONNECTED
+        else:
+                        
+            logger.log("i", "One device connected " + state);
+            return CONNECTED
+        
 
 
     

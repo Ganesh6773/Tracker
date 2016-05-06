@@ -7,7 +7,7 @@ import utils
 import my_logger
 import threading
 import my_logger
-import db
+import db_ops as db
 
 connection_status_array
 class DeviceTracker:
@@ -28,52 +28,72 @@ class DeviceTracker:
         
         #initialize state
         firstConnectionTime =   0   # the time when the ID dev connected first
-        lastSeenTime        =   0   # the last time, dev seen without waiting for maxTimeToChangeStatus 
+        lastSeenTime        =   utils.getTime()   # the last time, dev seen without waiting for maxTimeToChangeStatus 
         
         lastDeviceState     =   utils.DISCONNECTED
         currentDeviceState  =   utils.DISCONNECTED
         
         timeSinceDisconnected    =   0
         
-        self.lastConnectedDeviceId      =   utils.getConnectedDeviceId();
-        self.currentConnectedDeviceId   =   utils.getConnectedDeviceId();
+        self.lastConnectedDeviceId      =   utils.getConnectedDeviceId(dType);
+        self.currentConnectedDeviceId   =   utils.getConnectedDeviceId(dType);
         
-        #always running loop
+        #This flag is to set whe
+        addedDbEntryFlag                =   False
+        #always running loop after every utils.getMaxWaitBetweenDeviceConnectionCheck()
         while(True):
                         
-            currentDeviceState              =   utils.getDeviceConnectioState();
+            currentDeviceState              =   utils.getDeviceConnectioState(dType);
             self.currentConnectedDeviceId   =   utils.getConnectedDeviceId();
+            currentTime                     =   utils.getTime();
             
             self.logger.debug("currentDeviceState = " + str(currentDeviceState) + "Device Id : " + str(self.currentConnectedDeviceId))
             
-            #if different device connected
-            if(self.currentConnectedDeviceId    !=  self.lastConnectedDeviceId):
-                #found new device adding rec to db
-                
             
-            #device state changer from previous state    
+            #device state changed from previous state   to disconnected  
             if( ( currentDeviceState   != lastDeviceState ) and ( currentDeviceState == utils.DISCONNECTED )):
                 
-                if(timeDisconnected <=  utils.getMaxTimeToChangeStatus()):
-                    timeDisconnected    =   timeDisconnected +  utils.getMaxWaitBetweenDeviceConnectionCheck();
-                    self.logger.debug("Device ID : " + str(self.lastConnectedDeviceId) +   "Total time disconnected " + str(timeDisconnected))
-                else:
+                self.logger.debug("Device state changed to Disconnect")
+                if(lastSeenTime ==  0):
+                    lastSeenTime                =   utils.getTime() - utils.getMaxWaitBetweenDeviceConnectionCheck()
                     
-                    #if max disconnected time elapsed, 
-                    #the call to db entry, and re-initilize raw parameters
-                    
-                    self.logger.debug("Max waiting time to re-connecte device is elapsed, adding rec to db as device disconnected");
-                    self.logger.debug("Device TYpe : " | str(dType))
-                    result=db.addStatusChangeDBEntry(dType, utils.DISCONNECTED  , self.lastConnectedDeviceId, firstConnectionTime, lastSeenTime);
-                    
-                    if(result):
-                        
-                        self.logger.debug("Successfully added entry into db");
-                    else:
-                        self.logger.warning("Failed to make disconnected device entry into db. Result : " + result )
-            else:
+                timeSinceDisconnected       =   timeSinceDisconnected + utils.getMaxWaitBetweenDeviceConnectionCheck();
+                   
+                if(timeSinceDisconnected    <=  utils.getMaxTimeToChangeStatus()):
+                    timeSinceDisconnected    =   timeSinceDisconnected +  utils.getMaxWaitBetweenDeviceConnectionCheck();
+                    self.logger.debug("Device ID : " + str(self.lastConnectedDeviceId) +   "Total time disconnected " + str(timeSinceDisconnected))
                 
-                #if( self.lastConnectedDeviceId  != self.currentConnectedDeviceId):
+                #Device disconnected for long time and need to record into db    
+                else:
+                    db.addSDevDisconnectedDBEntry(dType, devStatus=utils.DISCONNECTED, firstConTime=firstConnectionTime , disConTime lastSeenTime)
+                    
+            #disconnected device connected        
+            elif ( ( currentDeviceState   != lastDeviceState ) and ( currentDeviceState == utils.CONNECTED )):
+                
+                
+                #if different device connected and currentConnectedDeviceId not equal to DISCONNECTED 
+                if((self.currentConnectedDeviceId    !=  self.lastConnectedDeviceId) and ( self.currentConnectedDeviceId != utils.DISCONNECTED) ):
+                    #found new device adding rec to db
+                    disconnectedProbaleTime =  currentTime  -  int(utils.getMaxWaitBetweenDeviceConnectionCheck() / 2)  
+                    if(db.addDevConnectedEntry(dType, utils.CONNECTED,disconnectedProbaleTime ) == True ):
+                        #db entry successfull
+                        self.logger.debug("Added new device connection entry to db " + str(currentConnectedDeviceId) + " , connection Time  " + str( disconnectedProbaleTime))
+                        
+                        self.lastConnectedDeviceId  =   self.currentConnectedDeviceId
+                       
+                        firstConnectionTime         =   disconnectedProbaleTime + 2 
+                        
+                        currentDeviceState          =   utils.CONNECTED
+                        lastDeviceState             =   utils.CONNECTED
+                
+                #if same device is connected
+                else:
+                    #check if disconnected time is big enough to consider a separate entry.
+                    
+                    
+               
+                        
+                        
                     
                                                                                     
                                            
