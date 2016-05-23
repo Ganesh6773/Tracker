@@ -14,3 +14,4 @@ def addSDevDisconnectedDBEntry(devType,devStatus, deviceId, firstConTime, disCon
 def addDevConnectedEntry(devType, devStatus=utils.CONNECTED, devId, connectedTTime):
     ''' insert db entry for new device connection '''
     
+    return result; # True or False
