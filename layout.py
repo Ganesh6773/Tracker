@@ -63,5 +63,32 @@
                     
  '''              
             
- 
+ '''
+   ---------------------------------
    
+   if(curState is connected )
+    
+        if(lastId == currID )
+          reinitialize and continue ;
+          
+        elseIf(lastId != currId )
+          
+          re-initailize vaule;
+          add db entry
+          
+  elseIf(curState is disconnected )
+  
+      if(lastId is NONE)
+          sleep and continue;
+          
+      else # lastId in not none
+        then 
+          if(maxDiscONnected time allowed elapsed )
+          add new db entry for disconnecteion
+          and set lastDevId to None
+          
+          else:
+              increase disconnectedTime
+              sleep and continue;
+          
+         

@@ -22,109 +22,111 @@ class DeviceTracker:
         self.currentConnectedDeviceId   =   None;
         #self.lastCheckTime          =   None;
         self.logger                 =   my_logger.getLogger();        
+        self.devType                =   utils.TYPE_REFERENCE_DEVICE
+        self.firstConnectionTime    =   None
+        self.hostId                 =   utils.getHostId()
+    def firstConnectionHandler(self):
+        ''' device connected first time since pc boot'''
+        self.logger.debug("FirstTimeConnection handler called")
+        self.lastConnectedDeviceId  =  self.currentConnectedDeviceId 
+       
+        
+        #add db entry for device connection
+        db.addDevConnectedEntry(utils.TYPE_REFERENCE_DEVICE, utils.CONNECTED,self.currentConnectedDeviceId, self.firstConnectionTime)
+
+    def addDeviceDisconnectedEntry(self):
+        ''' this is wrapper, calls db.addDevConnectedEntry() with approproate parameters '''
+        self.logger.log("Addind db entry from device connected from host@"+str(host))
+        db.addDevConnectedEntry(self.devType, devStatus=utils.CONNECTED, self.currentConnectedDeviceId, self.firstConnectionTime, self.hostId)
+        
+    def updateDeviceConnectedEntry(self):
+        ''' this is wrapper, calls db.updateDevConnectedEntry() with approproate parameters '''
+        
+        
         
     def checkAndUpdate(self, dType=utils.TYPE_REFERENCE_DEVICE):
         '''  This function will keep checking the device state, and if changed for it will call db thread to update
         accordingly'''
         
         #initialize state
-        firstConnectionTime =   -1   # the time when the ID dev connected first
-        lastSeenTime        =   -1   # the last time, dev seen without waiting for maxTimeToChangeStatus 
+        self.firstConnectionTime =   -1   # the time when the ID dev connected first
+        self.lastSeenTime        =   -1   # the last time, dev seen without waiting for maxTimeToChangeStatus 
         
-        lastDeviceState     =   utils.DISCONNECTED
-        currentDeviceState  =   utils.DISCONNECTED
+        self.lastDeviceState     =   utils.DISCONNECTED
+        self.currentDeviceState  =   utils.DISCONNECTED
         
-        timeSinceDisconnected    =   0
+        self.timeSinceDisconnected    =   0
         
         self.lastConnectedDeviceId      =   utils.getConnectedDeviceId(dType);
         self.currentConnectedDeviceId   =   utils.getConnectedDeviceId(dType);
+        
         
         #This flag is to set whe
         addedDbEntryFlag                =   False
         #always running loop after every utils.getMaxWaitBetweenDeviceConnectionCheck()
         while(True):
                         
-            currentDeviceState              =   utils.getDeviceConnectioState(dType);
-            #will loop until first device connection not found
-            if((currentDeviceState   ==  utils.DISCONNECTED) and (firstConnectionTime == -1) ):
-                self.logger.debug("No Device connected yet, will check again after " + str(utils.getMaxWaitBetweenDeviceConnectionCheck()) + "seconds")
-                time.sleep(utils.getMaxWaitBetweenDeviceConnectionCheck)
-                continue;
+            time.sleep(utils.getMaxWaitBetweenDeviceConnectionCheck())
+            self.currentDeviceState              =   utils.getDeviceConnectioState(dType);
+            
+            #if no device connected since boot
+            if((self.lastConnectedDeviceId    ==  None) and (currentDeviceState == utils.DISCONNECTED)):
+                self.logger.debug("No Device connected since PC Boot or last device disconnected")
+                continue
+            
+            self.currentConnectedDeviceId   =   utils.getConnectedDeviceId()
+            
+            if(self.currentDeviceState  ==  utils.CONNECTED ):
+                #self.logger.debug("Some Device is found Connected " + str(self.currentConnectedDeviceId))
                 
-            self.currentConnectedDeviceId   =   utils.getConnectedDeviceId();
-            
-            if(lastSeenTime == -1):
-                self.logger.debug("First Connection of device, setting last seen time to current : " + str(currentTime) + "Device Id " + str(self.currentConnectedDeviceId));
-                #means first iteration
-                lastSeenTime            =   utils.getTime()
-                firstConnectionTime     =   lastSeenTime
-                timeSinceDisconnected   =   0
-                self.logger.debug("First Device Connection since pc boot")
-                   
-            self.logger.debug("currentDeviceState = " + str(currentDeviceState) + "Device Id : " + str(self.currentConnectedDeviceId))
-            
-            
-            #device state changed from previous state   to disconnected  
-            if(lastDeviceState != currentDeviceState):
-                #disconnected --> connected
-                if(currentDeviceState   == utils.CONNECTED):
-                    self.logger.debug("Device state changed from disconnected to connected")
+                if(self.lastConnectedDeviceId   ==   self.currentConnectedDeviceId):
+                    self.logger.info("Same device is still connected" + str(self.currentConnectedDeviceId))
+                    #do reinitialization
                     
-                    #if same device is connected back
-                    if( self.lastConnectedDeviceId   == self.currentConnectedDeviceId ):
-                        lastSeenTime    =   utils.getTime()
-                        timeSinceDisconnected   =   0
-                        
-                        
-                    #got different device connected
-                    elif(self.lastConnectedDeviceId != self.currentConnectedDeviceId ):
-                        self.logger.debug("Different device connected, previous : " + str(self.lastConnectedDeviceId) + "current " + str(self.currentConnectedDeviceId))
-                        lastSeenTime    = utils.getMeanTime(utils.getTime() , utils.getTime() - utils.getMaxWaitBetweenDeviceConnectionCheck())
-                        
-                        dbOpResult  =   db.addSDevDisconnectedDBEntry(utils.TYPE_REFERENCE_DEVICE, utils.DISCONNECTED, self.lastConnectedDeviceId, firstConTime, lastSeenTime)
-                        
-                        if(dbOpResult):
-                            self.logger.error("Added Disconnected Entry for dev : " + str(self.lastConnectedDeviceId) + "Successfully")
-                        else:
-                            self.logger.error("Failed to add Device Disconnected Entry into db  for device Id : " + str(self.lastConnectedDeviceId) )
-                        #if end
-                        
-                        lastSeenTime    =   lastSeenTime +=2 ;
-                        self.lastConnectedDeviceId   =   self.currentConnectedDeviceId
-                        timeSinceDisconnected   =   0
-                        firstConnectionTime     =   lastSeenTime
-                       
-                        self.lastConnectedDeviceId      =   self.currentConnectedDeviceId
-                    #if end
+                    self.lastConnectedDeviceId  =   self.currentConnectedDeviceId
+                    self.timeSinceDisconnected  =   0
+                    self.lastSeenTime           =   utils.getTime()
+                    continue
+                #lastdevId != currentConnectedDeviceId    
+                else:
+                    self.logger.debug("Last Connected Device is not the same as current one: in else" )
+                    
+                    self.firstConnectionTime    =   utils.getMeanTime(utils.getTime(), utils.getTime() - utils.getMaxWaitBetweenDeviceConnectionCheck())
+                    self.lastSeenTime   =   self.lastSeenTime   +   self.firstConnectionTime
+                    
+                    self.logger.debug("Updating old device disconnection entry");
+                    self.updateDeviceDisconnectedEntry()
+                    self.logger.debug("Adding new connection device connection entry");
+                    self.addDeviceConnectedEntry()
+            #last device id is not in none
+            else:
+                self.logger.debug("No device connected block")
                 
-                # connected ---> Disconnected    
-                elif (currentDeviceState    ==  utils.DISCONNECTED):
-                    self.logger.debug("Device State Changed from Connected To Disconnected");
+                if(self.timeSinceDisconnected >= utils.getMaxTimeToChangeStatus()):
+                    self.logger.info("Device disconnected for long time than allowed, marking as disconnected");
                     
-                    #since it was previously connected and now disconnected, we are setting timeout for waiting reconnection to 0
-                    lastDeviceState         =   utils.DISCONNECTED
-                    probableDisconnectTime  =   utils.getMeanTime() -2
-                    timeSinceDisconnected   =   utils.diffBetTime(utils.getTime() - probableDisconnectTime )
-                    lastSeenTime            =   probableDisconnectTime
+                    self.updateDeviceConnectedEntry();
                     
-                    self.logger.debug("Time Since Disconnect set to " + str(timeSinceDisconnected) + " and last seen time " + str(lastSeenTime));
-                #elif end
-            #if end
-            #state remains same as previous iteration
-            elif(currentDeviceState ==  lastDeviceState):
-                
-                # if previous and current state is connected
-                if(currentDeviceState   ==  utils.CONNECTED):
-                    self.logger.debug("device state remains same, as CONNECTED")
+                    self.lastConnectedDeviceId      =   None
+                    self.timeSinceDisconnected      =   0
+                    self.currentConnectedDeviceId   =   None
+                    self.lastSeenTime               =   -1
+                    self.firstConnectionTime        =   -1
+                    self.lastDeviceState            =   utils.DISCONNECTED
                     
-                    lastSeenTime            =   utils.getTime();
-                    timeSinceDisconnected   =   0
+                else:
                     
+                    self.timeSinceDisconnected   +=  utils.getMaxWaitBetweenDeviceConnectionCheck()
+                    self.logger.debug("Device disconnected since " + str(self.timeSinceDisconnected) )
+                    
+                                    
             
-            #elif end
+                    
+                        
+                        
+                    
+                    
                 
-            
-         
          
            
                 

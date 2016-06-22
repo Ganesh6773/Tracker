@@ -26,6 +26,14 @@ _LOGGER_FORMAT_STRING                       =   '[ %(asctime)-15s ] [ %(levelnam
 _MAX_WAIT_BETWEEN_DEV_CONNECTION_CHECK      =   5  * 60      #( 300 secs)
 _MAX_TIME_TO_CHANGE_STATUS                  =   20 * 60      # even if the same dev is connected after this time, it will cause new entry in db  
 _MAX_WAIT_TIME_TO_PARSE_THREAD_RUN          =   30 * 60      # after this time the method parseAndUpdate() from device_connection_tracking_status will run
+
+
+# -------------- small server constants
+_SERVER_IP                                  =   None
+_SERVER_URL                                 =   'http//localhost:8081'
+
+_UPDATE_DISCONNECTED_DEVICE_URL                   =   'update'       # this string will be added to server utl to call nodejs update url location
+_ADD_DEVICE_CONNECTION_URL                         =   'add'
 #_-------------- getters -------------
 
 def getConfigDir():
@@ -95,6 +103,7 @@ def getConnectedDeviceId(type=TYPE_REFERENCE_DEVICE):
         
     
     
+
     
 @staticmethod
 def getDeviceConnectioState(type=TYPE_REFERENCE_DEVICE):
@@ -117,6 +126,26 @@ def getDeviceConnectioState(type=TYPE_REFERENCE_DEVICE):
         
 
 
+#----------------server utils
+
+@staticmethod
+def getServerIp():
+    ''' returns the server ip'''
+    return _SERVER_IP
+    
+
+@staticmethod
+def getServerURL():
+    ''' return server URL '''
+    return _SERVER_URL    
+    
+@staticmethod
+def getUpdateURL():
+    ''' nodejs url for updating the DISCONNECTED device entry'''
+    return getServerURL() + '/' + _UPDATE_DISCONNECTED_DEVICE_URL
     
     
-    
+@staticmethod
+def getAddURL():
+    ''' nodejs url for adding new connected device entry'''
+    return getServerURL() + '/' + _ADD_DEVICE_CONNECTION_URL

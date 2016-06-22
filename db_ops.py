@@ -4,14 +4,14 @@ import utils
 
 
 
-def addSDevDisconnectedDBEntry(devType,devStatus, deviceId, firstConTime, disConTime):
-    ''' take care of db insert op to add dev disc entry entry'''
+def updateDevDisconnectedDBEntry(devType,devStatus, deviceId, firstConTime,hostId):
+    ''' take care of db update op to add dev disc entry entry'''
     
     
     return result; #true or false
     
 
-def addDevConnectedEntry(devType, devStatus=utils.CONNECTED, devId, connectedTTime):
+def addDevConnectedEntry(devType, devStatus=utils.CONNECTED, devId, connectionTime, hostId):
     ''' insert db entry for new device connection '''
     
     return result; # True or False
